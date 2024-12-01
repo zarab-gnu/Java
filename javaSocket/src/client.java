@@ -1,30 +1,38 @@
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.Socket;
 import java.util.Scanner;
 
 public class client {
-    public static void main(String[] args) throws IOException {
-        System.out.println("client started--");
-        Socket s = new Socket("127.0.0.1",6969);
-        System.out.println("client connected");
+    public static void main(String[] args) {
+        try (Scanner scanner = new Scanner(System.in)) {
 
+            System.out.print("Enter server IP address: ");
+            String serverIp = scanner.nextLine();
 
-        ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
-        ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
-        
-        Scanner sc = new Scanner(System.in);
-        String msg = sc.nextLine();
-        oos.writeObject(msg);
+            try (Socket socket = new Socket(serverIp, 6969);
+                 ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+                 ObjectInputStream ois = new ObjectInputStream(socket.getInputStream())) {
 
-        try {
-            Object serverMsg = ois.readObject();
-            System.out.println("Server: "+(String)serverMsg);
-        } catch (ClassNotFoundException | IOException e) {
-            e.printStackTrace();
+                System.out.println("Connected to server");
+
+                while (true) {
+                    System.out.println("Enter command (ADD id name, DELETE id, VIEW, or EXIT):");
+                    String command = scanner.nextLine();
+
+                    oos.writeObject(command); // Send command to server
+                    oos.flush(); // Ensure its sent immediately
+
+                    if (command.equalsIgnoreCase("EXIT")) {
+                        System.out.println("Disconnected from server");
+                        break;
+                    }
+
+                    String response = (String) ois.readObject(); // Receive response
+                    System.out.println("Server response: " + response);
+                }
+            } catch (Exception e) {
+                System.err.println("Connection error: " + e.getMessage());
+            }
         }
-
     }
-
 }
